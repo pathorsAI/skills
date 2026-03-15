@@ -5,7 +5,7 @@ Agent skills for building and managing [Pathors](https://pathors.com) AI agents.
 ## Installation
 
 ```bash
-npx skills add pathorstw/skills
+npx skills add pathorsai/skills
 ```
 
 ## Available Skills

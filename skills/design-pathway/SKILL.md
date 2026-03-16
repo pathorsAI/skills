@@ -341,6 +341,58 @@ Tool: delete_node
 Input: { "projectId": "<project-id>", "nodeId": "old-node" }
 ```
 
+## Design Principles
+
+### Each Node = One Conversational Mission
+
+A node represents a **mission** that typically requires **at least one round of conversation** to accomplish. The agent talks with the user, gathers information, or performs an action within that node before transitioning.
+
+**Do NOT** create nodes that serve only as routing logic with no conversation. If a node's prompt is just "decide where to go next" with no user interaction, it should not be a separate node — merge it into the previous node's edge conditions instead.
+
+Good — each node has a conversational purpose:
+```
+start (greet + ask intent) → collect-info (ask for details) → confirm (verify with user) → end
+```
+
+Bad — "router" node with no conversation:
+```
+start (greet) → router (just classify intent, no talking) → billing / support / general
+```
+
+Better — use edge conditions directly:
+```
+start (greet + ask intent)
+  ├─ "wants billing help" → billing
+  ├─ "needs support" → support
+  └─ "general question" → general-qa
+```
+
+### Keep the Graph Clean with Goto Nodes
+
+When flows need to loop back or converge, use `goto` nodes instead of creating tangled edge webs. This keeps the pathway readable and maintainable.
+
+Bad — messy cross-connections:
+```
+start → A → B → C → end
+              ↗ ↙
+         D → E
+         ↑   ↓
+         └───┘
+```
+
+Good — goto nodes for clarity:
+```
+start → A → B → C → end
+A → D → E → goto(B)    // clear: E loops back to B
+```
+
+**When to use goto:**
+- Loops (retry, re-ask, return to menu)
+- Converging branches (multiple paths lead to the same next step)
+- Shared sub-flows reused from different entry points
+
+---
+
 ## Common Patterns
 
 ### Linear Flow

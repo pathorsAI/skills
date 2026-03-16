@@ -11,7 +11,7 @@ Build a new Pathors AI voice/chat agent step by step.
 
 ### Step 1: Create Project
 
-Use `create_project` to create a new project. This automatically creates a blank agent config and pathway.
+Use `create_project` to create a new project. This automatically creates a blank agent config, pathway (with start + end nodes), and 10 USD initial credit.
 
 ```
 Tool: create_project
@@ -44,12 +44,14 @@ Input: {
 
 ### Step 3: Design Pathway
 
-Use `get_pathway` to see the blank template, then add nodes and edges:
+Use `get_pathway` to see the blank template (start + end nodes), then add nodes and edges:
 
 1. **Add nodes** with `create_node` — each node is a conversation state
 2. **Add edges** with `create_edge` — edges define transitions between states
 
-See the `design-pathway` skill for pathway design patterns.
+Node types: `start` (entry point), `prompt` (conversation state), `end` (terminal), `goto` (redirect to another node).
+
+See the `design-pathway` skill for pathway design patterns and full node schema.
 
 ### Step 4: Add Tools
 
@@ -65,14 +67,14 @@ See the `manage-tools` skill for tool configuration details.
 ### Simple Q&A Agent
 
 A minimal agent that answers questions:
-- 1 node: `greeting` (type: `conversation`)
+- 1 start node + 1 end node (default template)
 - System prompt handles all logic
 - No tools needed
 
 ### Multi-Step Agent
 
 An agent with structured conversation flow:
-- `greeting` → `collect-info` → `process` → `confirm` → `end`
+- `start` → `collect-info` (prompt) → `process` (prompt) → `confirm` (prompt) → `end`
 - Each node has specific prompts and conditions
 - Tools attached for data lookups
 

@@ -171,11 +171,27 @@ Variables are defined at the pathway level in `variableConfigs`:
 - `number` — Numeric value (coerced from text)
 - `email` — Validated email format
 
-### Adding Variables to a Pathway
+### Step 1: Define Variables on the Agent
 
-Use `update_pathway` to set `variableConfigs` at the pathway level, or update the pathway data directly.
+Variable definitions live in **agent config** (not pathway). Use `update_agent` to set them:
 
-### Referencing Variables on Nodes
+```
+Tool: update_agent
+Input: {
+  "projectId": "<project-id>",
+  "config": {
+    "variableConfigs": [
+      { "key": "customer_name", "type": "string", "description": "Customer's full name" },
+      { "key": "customer_email", "type": "email", "description": "Customer's email address" },
+      { "key": "order_amount", "type": "number", "description": "Total order amount in USD" }
+    ]
+  }
+}
+```
+
+Use `get_agent` to check current variable configs before updating. To add a variable without overwriting existing ones, read the current `variableConfigs` first, append the new one, and send the full array.
+
+### Step 2: Reference Variables on Nodes
 
 Add variable keys to a node's `variableKeys` array. The system will attempt to extract those variables when the conversation reaches that node.
 
@@ -191,15 +207,6 @@ Add variable keys to a node's `variableKeys` array. The system will attempt to e
     "variableKeys": ["customer_name", "customer_email"]
   }
 }
-```
-
-The corresponding `variableConfigs` on the pathway:
-
-```json
-"variableConfigs": [
-  { "key": "customer_name", "type": "string", "description": "Customer's full name" },
-  { "key": "customer_email", "type": "email", "description": "Customer's email address" }
-]
 ```
 
 ### Extraction Behavior by Execution Mode
@@ -390,7 +397,7 @@ start → collect-info → process → end
 - Pathway **should** have at least one `end` node
 - All non-terminal nodes should be reachable from start and able to reach an end node
 - Node `id` must be unique within the pathway
-- `variableKeys` must reference keys that exist in the pathway's `variableConfigs`
+- `variableKeys` must reference keys that exist in the agent's `variableConfigs` (set via `update_agent`)
 - `tools` must reference valid tool config IDs from the project's tool list
 
 ## IMPORTANT: Sequential Operations Only

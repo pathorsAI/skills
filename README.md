@@ -16,6 +16,8 @@ Set your API key as an environment variable:
 export PATHORS_API_KEY="dk_your_key_here"
 ```
 
+Script skills require `npx tsx` (installed as devDependency).
+
 ## Available Skills
 
 ### Documentation Skills
@@ -31,24 +33,23 @@ Guide-style skills that teach workflows via MCP tool references.
 
 ### Script Skills
 
-Executable skills that call the REST API directly with type guards and compact output. These save tokens by returning only essential data instead of full API responses.
+TypeScript skills that call the REST API directly with zod validation and structured output.
 
 | Skill | Description |
 |-------|-------------|
-| `pathors-overview` | Quick project overview — list projects, full agent+pathway+tools summary |
-| `quick-agent` | Read and update agent config with field validation |
+| `quick-agent` | Full agent config + project overview + partial updates |
 | `quick-pathway` | Pathway CRUD with sequential safety and batch operations |
-| `quick-session` | Session queries and stats with truncated transcripts |
-| `quick-tools` | Tool management with type guards |
+| `quick-session` | Session queries, stats, and compact transcript view |
+| `quick-tools` | Tool management with field validation |
 
 ### Why Script Skills?
 
 | | MCP Tools | Script Skills |
 |---|---|---|
-| Token usage | Full JSON responses | Compact, essential-only output |
-| Type safety | AI interprets errors | Script validates before sending |
+| Token usage | Full JSON responses | Only essential data when using compact mode |
+| Type safety | AI interprets errors | Zod validates before sending |
 | Multi-step ops | AI manages sequencing | Script handles internally (e.g., `batch-setup`) |
-| Error handling | AI parses error responses | Script provides clear error messages |
+| Error handling | AI parses error responses | Structured error output |
 
 ## MCP Server
 

@@ -5,7 +5,7 @@ import { api, output, outputData, fail, parseArgs } from "../../../lib/client.js
 
 const UpdateAgentSchema = z
   .object({
-    name: z.string().min(1).max(128).optional(),
+    name: z.string().min(1).max(16).optional(),
     type: z.enum(["monolithic", "skill"]).optional(),
     status: z.enum(["draft", "published"]).optional(),
     globalPrompt: z.string().nullable().optional(),

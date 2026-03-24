@@ -1,12 +1,12 @@
 ---
 name: quick-session
-description: Query and analyze Pathors session history with compact output. Use when reviewing conversations, checking stats, or debugging agent behavior.
-allowed-tools: Bash(bash *)
+description: Query and analyze Pathors session history. Use when reviewing conversations, checking stats, or debugging agent behavior.
+allowed-tools: Bash(npx tsx *)
 ---
 
 # Quick Session
 
-Query session history and statistics with token-efficient output.
+Query session history and statistics.
 
 ## Prerequisites
 
@@ -14,44 +14,34 @@ Set `PATHORS_API_KEY` environment variable.
 
 ## Commands
 
-### List recent sessions
+### List sessions
 
 ```bash
-bash ${CLAUDE_SKILL_DIR}/scripts/session.sh list <projectId> [page] [pageSize]
+npx tsx ${CLAUDE_SKILL_DIR}/scripts/session.ts list <projectId> [page] [pageSize]
 ```
-
-Returns: `{ page, totalPages, total, sessions: [{id, start, end, provider, messages, marked, evaluation}] }`
 
 ### Session statistics
 
 ```bash
-bash ${CLAUDE_SKILL_DIR}/scripts/session.sh stats <projectId> [startDate] [endDate]
+npx tsx ${CLAUDE_SKILL_DIR}/scripts/session.ts stats <projectId> [startDate] [endDate]
 ```
 
-Date format: `YYYY-MM-DD`
-
-### Get session with truncated transcript
-
-Messages are truncated to 200 chars. Use `get-full` for complete data.
+### Get full session
 
 ```bash
-bash ${CLAUDE_SKILL_DIR}/scripts/session.sh get <projectId> <sessionId>
+npx tsx ${CLAUDE_SKILL_DIR}/scripts/session.ts get <projectId> <sessionId>
 ```
 
-### Get full session (all events)
+### Get compact session (truncated transcript)
+
+Messages truncated to 200 chars — use `get` for full data.
 
 ```bash
-bash ${CLAUDE_SKILL_DIR}/scripts/session.sh get-full <projectId> <sessionId>
+npx tsx ${CLAUDE_SKILL_DIR}/scripts/session.ts get-compact <projectId> <sessionId>
 ```
 
 ### Search sessions
 
 ```bash
-bash ${CLAUDE_SKILL_DIR}/scripts/session.sh search <projectId> "search query"
+npx tsx ${CLAUDE_SKILL_DIR}/scripts/session.ts search <projectId> "search query"
 ```
-
-## Tips
-
-- Use `list` + `stats` for a quick health check
-- Use `get` (truncated) first, then `get-full` only if you need the raw events
-- Use `search` to find specific conversations by keyword

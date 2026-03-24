@@ -1,6 +1,8 @@
 # Pathors Skills
 
-Agent skills for building and managing [Pathors](https://pathors.com) AI agents.
+> Build your conversational AI agent in a minute.
+
+MCP skills and agent tools for building and managing [Pathors](https://pathors.com) AI call center and voice agents — directly from Claude Code, Cursor, and other AI coding assistants.
 
 ## Installation
 

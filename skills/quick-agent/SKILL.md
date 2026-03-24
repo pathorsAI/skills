@@ -1,12 +1,12 @@
 ---
 name: quick-agent
-description: Quickly read and update Pathors agent configuration with minimal token output. Use when modifying agent settings, prompts, or reviewing agent config.
-allowed-tools: Bash(bash *)
+description: Read and update Pathors agent configuration with zod validation. Use when modifying agent settings, prompts, or reviewing agent config.
+allowed-tools: Bash(npx tsx *)
 ---
 
 # Quick Agent
 
-Read and update agent configuration with type-safe operations and compact output.
+Read and update agent configuration with zod-validated operations.
 
 ## Prerequisites
 
@@ -14,36 +14,43 @@ Set `PATHORS_API_KEY` environment variable.
 
 ## Commands
 
-### Get agent summary (compact)
+### Get full agent config
 
-Returns only essential fields — no raw prompt blob.
+Returns the complete agent configuration.
 
 ```bash
-bash ${CLAUDE_SKILL_DIR}/scripts/agent.sh get <projectId>
+npx tsx ${CLAUDE_SKILL_DIR}/scripts/agent.ts get <projectId>
 ```
 
-Output: `{ name, type, status, executionMode, memoryEnabled, hasPrompt, promptLength, hasWebhook, hasEvaluation, variableCount }`
+### Get project overview (agent + pathway + tools)
 
-### Get full system prompt
-
-Only use when you need to read/edit the prompt text.
+One call to get the full picture — agent config, pathway structure, and tools list.
 
 ```bash
-bash ${CLAUDE_SKILL_DIR}/scripts/agent.sh get-prompt <projectId>
+npx tsx ${CLAUDE_SKILL_DIR}/scripts/agent.ts overview <projectId>
 ```
 
-### Update agent config
+### Get system prompt only
 
-Type-guarded — validates JSON and rejects unknown fields.
+Use when you only need to read/edit the prompt text.
 
 ```bash
-bash ${CLAUDE_SKILL_DIR}/scripts/agent.sh update <projectId> '{"name":"New Name","executionMode":"smart"}'
+npx tsx ${CLAUDE_SKILL_DIR}/scripts/agent.ts get-prompt <projectId>
+```
+
+### Update agent config (partial)
+
+Send only the fields you want to change — other fields stay untouched.
+Validated with zod before sending.
+
+```bash
+npx tsx ${CLAUDE_SKILL_DIR}/scripts/agent.ts update <projectId> '{"name":"New Name","executionMode":"smart"}'
 ```
 
 **Allowed fields:** `name`, `type`, `status`, `globalPrompt`, `executionMode`, `timezone`, `memoryEnabled`, `beforeStartConfig`, `postSessionWebhook`, `postEvaluationConfig`, `placeholderMessages`, `variableConfigs`
 
 ## Tips
 
-- Use `get` first to see current state before updating
-- Use `get-prompt` only when you need the full prompt text (it can be long)
-- The `update` command validates your JSON before sending — typos in field names are caught early
+- Use `get` to see full config, `overview` for full project context
+- Use `get-prompt` only when you need the prompt text (can be long)
+- `update` accepts partial data — only send what you want to change

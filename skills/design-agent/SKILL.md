@@ -26,7 +26,7 @@ Input: {
   "projectId": "<project-id>",
   "config": {
     "name": "Customer Support Agent",
-    "globalPrompt": "你是...",
+    "globalPrompt": "...",
     "executionMode": "smart",
     "timezone": "Asia/Taipei"
   }
@@ -40,9 +40,10 @@ Input: {
 Write the global prompt as if there were NO nodes — it should handle:
 
 - **Persona and tone** — Who is the agent? How should it talk?
-- **Core rules** — What can and can't the agent do?
+- **Core rules** — What can and can't the agent do? Transfer rules, escalation triggers, compliance rules
 - **Language** — What language(s) should the agent use?
 - **Error handling** — What to do when confused or uncertain?
+- **Cross-cutting logic** — Brand name normalization, number formatting, pronunciation rules, etc.
 
 **Why this matters:** Each node's prompt is **isolated** — when the agent enters a node, it only sees the global prompt + that node's prompt. It does NOT see other nodes' prompts. So anything important must be in the global prompt.
 
@@ -61,66 +62,99 @@ Node "collect-info" prompt: "詢問客戶的訂單編號和 email"
 
 ## Step 3: Design the Pathway
 
-The pathway is a state machine that controls the conversation flow. Each node is a conversation state, each edge is a transition.
+The pathway is a state machine. Each node is a conversation state, each edge is a transition.
+
+### Think in Terms of a Main Trunk with Branches
+
+A real-world agent typically has one **main flow** (the trunk) with **independent branches** that handle specific intents. The trunk is the happy path; branches handle detours.
+
+**Example — Automotive Service Booking Agent:**
+
+```
+Main trunk:
+  start (greet + identify caller)
+    → vehicle mileage confirmation
+    → service selection
+    → shop type aggregation
+    → drop-off / wait-on-site decision
+    → appointment scheduling
+    → confirmation
+
+Branches from start (intent detection):
+  ├─ "cancel/reschedule" → cancel handler → (reschedule loops back to mileage)
+  ├─ "body shop / collision" → body shop info → transfer_call
+  ├─ "windshield / glass" → windshield info → transfer_call
+  ├─ "towing" → towing vendor → transfer_call
+  ├─ "parts / accessories" → generic transfer → transfer_call
+  └─ "vehicle status" → generic transfer → transfer_call
+
+Branches from service selection:
+  ├─ "warranty" → warranty info gathering → transfer_call
+  ├─ "recall" → recall info gathering → transfer_call
+  └─ "tire purchase" → tire info gathering → transfer_call
+
+Global node (reachable from anywhere):
+  [global] live agent request → transfer_call
+```
+
+Key patterns from this real example:
+- **The trunk is linear** — 6-7 steps covering the main booking flow
+- **Branches are self-contained** — each handles one intent, gathers info if needed, then transfers or loops back
+- **Most branches don't end at an `end` node** — they use `transfer_call` or `end_call` tools within prompt nodes
+- **Goto nodes** route back to the trunk after branch completion
 
 ### Architecture Principles
 
-#### 1. Keep Flows Flat and Independent
+#### 1. Not Everything Ends at an End Node
 
-Each major flow should be a **self-contained branch** from the start node. Avoid deeply nested paths or excessive back-and-forth between flows.
+`end` nodes are just one way to terminate a conversation. In practice, many flows end via **tools**:
 
-Bad — deeply nested, tangled:
+- `transfer_call` — Hand off to a live agent or department
+- `end_call` — Programmatically end the session
+
+These tools can be called from any prompt node. A prompt node that triggers `transfer_call` doesn't need an edge to an `end` node — the call is already over.
+
+Use `end` nodes for the natural conclusion of the main trunk (e.g., appointment confirmed, goodbye). Use tools for transfers and early terminations.
+
+#### 2. Keep Flows Flat and Independent
+
+Each branch from the trunk should be **self-contained**. Avoid crossing between branches or creating deeply nested sub-flows.
+
+Bad — branches tangled together:
 ```
-start → A → B → C → D → E → F → end
-              ↕       ↕
-              G → H → I
+start → A → B → C
+              ↕
+         D → E → F
+              ↕
+         G → H
 ```
 
-Good — flat branches, independent flows:
+Good — flat branches, independent:
 ```
-start
-  ├─ "billing" → billing-inquiry → end
-  ├─ "support" → check-status → resolve → end
-  └─ "booking" → collect-info → confirm → end
+start (main trunk)
+  ├─ "intent A" → handle-A → transfer_call
+  ├─ "intent B" → handle-B → transfer_call
+  └─ (default) → mileage → service → scheduling → confirmation
 ```
 
-**Why:** Deep nesting means more transitions, more chances for the agent to get lost, and harder debugging. Each flow should be understandable on its own.
+**Why:** Each branch should be understandable on its own. If you can't explain a branch in one sentence, it's too complex.
 
-#### 2. Verify Reachability
+#### 3. Verify Reachability
 
 For every node, ask: **Can a real user actually get here?**
 
-Check that:
-- Edge conditions from the previous node actually match what users would say
-- The path to this node doesn't require the user to pass through too many steps
-- There aren't dead-end nodes with no outgoing edges (unless they're `end` nodes)
+- Edge conditions should be **broad enough** to match natural speech, not exact phrases
+- The path shouldn't require too many steps to reach
 
-Common mistake — a node exists but the edge condition is too specific:
+Bad — too specific:
 ```
-start → "User says exactly 'I want to check my order'" → order-lookup
-```
-→ Most users won't say this exact phrase. Use broader conditions:
-```
-start → "User wants to check, track, or ask about an order" → order-lookup
+"User says exactly 'I want to check my order'" → order-lookup
 ```
 
-#### 3. Minimize Transitions
-
-Every transition is a decision point where the agent can make a wrong choice. Fewer transitions = more reliable agent.
-
-**Rule of thumb:** If a flow needs more than 4 steps (nodes), question whether some steps can be merged.
-
-Bad — over-engineered:
+Good — matches natural variations:
 ```
-start → ask-name → ask-email → ask-phone → confirm-info → process → confirm-result → end
+"User wants to check, track, or ask about an order" → order-lookup
 ```
-
-Good — consolidated:
-```
-start → collect-info → process-and-confirm → end
-```
-
-The node prompt for `collect-info` can handle asking for name, email, and phone in one conversation state.
 
 #### 4. Each Node = One Conversational Mission
 
@@ -128,106 +162,99 @@ A node should represent a task that needs **at least one round of conversation**
 
 Bad — router node with no conversation:
 ```
-start → router (classify intent, no talking) → billing / support
+start → router (classify intent) → billing / support
 ```
 
 Good — edge conditions on start:
 ```
-start (greet + ask intent)
-  ├─ "wants billing help" → billing
-  └─ "needs support" → support
+start (greet + detect intent)
+  ├─ "billing" → billing
+  └─ "support" → support
 ```
 
 #### 5. Node Prompts Are Supplements
 
 Since each node only sees global prompt + its own prompt:
 - **Don't repeat** the global prompt in node prompts
-- **Do specify** the specific task for this node
-- **Keep node prompts short** — 1-3 sentences describing what to do at this step
+- **Do specify** the concrete task for this node
+- **Keep node prompts focused** — describe what to do at this step, what data to collect, what tools to use
 
-```
-Node "collect-info" prompt: "Ask the customer for their order number. Once you have it, use the lookup tool to find the order."
-```
+#### 6. Use Goto Nodes for Routing
 
-That's it. The global prompt already defines persona, language, and rules.
+When a branch needs to rejoin the trunk, or when flows need to loop, use **goto nodes** instead of tangled edges.
+
+Common goto patterns:
+- After a transfer branch completes → goto confirmation or end
+- Reschedule intent → goto back to vehicle mileage step
+- Retry loop → goto back to the question node
 
 ### Node Types
 
 | Type | Purpose |
 |------|---------|
 | `start` | Entry point — at least one required |
-| `prompt` | A conversation state |
+| `prompt` | A conversation state with a specific mission |
 | `end` | Terminal state that ends the session |
-| `goto` | Redirect to another node (for loops or convergence) |
+| `goto` | Redirect to another node (for loops, convergence, or post-branch routing) |
 
 ### Node Schema
 
 ```json
 {
-  "id": "collect-info",
+  "id": "service-selection",
   "type": "prompt",
   "position": { "x": 300, "y": 0 },
   "data": {
     "type": "prompt",
-    "title": "Collect Info",
-    "prompt": "Ask the customer for their order number.",
-    "tools": ["tool-config-id"],
-    "variableKeys": ["order_number"]
+    "title": "Service Selection",
+    "prompt": "Ask what service the customer needs. Map their request to available services from the API data.",
+    "tools": ["lookup-tool-id"],
+    "variableKeys": ["SelectedService"]
   }
 }
 ```
-
-`data.type` must match the node's `type`. Only `type`, `title`, and `prompt` (or `referenceNodeId` for goto) are required.
 
 ### Edge Schema
 
 ```json
 {
-  "source": "start-1",
-  "target": "collect-info",
-  "condition": "User wants to check order status"
+  "source": "start",
+  "target": "service-selection",
+  "condition": "Customer confirms their vehicle and mileage"
 }
 ```
 
-Write conditions in **natural language** — the LLM interprets them. Write them in the agent's primary language.
+Write conditions in **natural language** in the agent's primary language. The LLM interprets them.
 
 ### Global Nodes
 
-A prompt node with `isGlobalNode: true` is reachable from **any** non-end node without explicit edges. Use for:
+A prompt node with `isGlobalNode: true` is reachable from **any** non-end node without explicit edges. Use for cross-cutting concerns:
 
-- **Escalation** — "Transfer to human" available at any point
-- **FAQ** — Answer general questions from anywhere
-- **Cancel** — User wants to stop
-
-```json
-{
-  "id": "escalate",
-  "type": "prompt",
-  "data": {
-    "type": "prompt",
-    "title": "Escalate",
-    "prompt": "Tell the user you're transferring them to a human agent.",
-    "isGlobalNode": true,
-    "globalNodeReason": "User can request human agent at any point"
-  }
-}
-```
+- **Live agent request** — "Transfer me to a human" available from any state
+- **FAQ / Help** — General questions that can come up at any point
+- **Cancel** — "I changed my mind" at any stage
 
 ### Common Patterns
 
-**Linear Flow** — forms, surveys, simple transactions:
+**Main trunk with branches** — The most common real-world pattern. A linear main flow with independent branches for different intents:
+
 ```
-start → collect-info → process → confirm → end
+start
+  ├─ (branch intents) → handle → transfer_call or goto(trunk)
+  └─ (main flow) → step1 → step2 → step3 → confirmation
 ```
 
-**Branching Flow** — multi-purpose agents:
+**Loop with exit** — For iterative data collection or Q&A:
+
 ```
-start → billing / support / general-qa → end
+collect-info ↻ (missing data → ask again)
+  └─ (all data collected) → next step
 ```
 
-**Loop with Escalation** — FAQ bots:
+**Transfer branches** — Gather context, then hand off:
+
 ```
-start → qa-loop ↻ (keep answering) → escalate or end
+warranty-info → (collect vehicle + issue details) → transfer_call → goto(confirmation)
 ```
 
 ## Step 4: Add Tools
@@ -246,6 +273,7 @@ In **smart** and **balance** execution modes, only tools assigned to the **curre
 
 - Assign tools only to nodes that need them
 - Use `list_tools` to get IDs before assigning
+- `transfer_call` and `end_call` tools can be used in any prompt node to end/transfer the session — they don't require routing to an `end` node
 
 ## Step 5: Configure Variables (Optional)
 
@@ -270,14 +298,15 @@ Input: {
 
 Before deploying, verify:
 
-- [ ] Global prompt covers persona, rules, language, and error handling
-- [ ] Each node has a clear conversational purpose (not just routing)
+- [ ] Global prompt covers persona, rules, language, error handling, and cross-cutting logic
+- [ ] Each node has a clear conversational mission (not just routing)
+- [ ] There is a clear main trunk flow
+- [ ] Branches are self-contained and don't tangle with each other
 - [ ] Every node is reachable by a real user through natural conversation
 - [ ] Edge conditions are broad enough to catch real user language
-- [ ] No flow exceeds 4-5 nodes deep
-- [ ] Flows are independent — not tangled together
-- [ ] End nodes exist for all terminal paths
-- [ ] Global nodes cover cross-cutting concerns (escalation, cancel)
+- [ ] Transfer branches use `transfer_call` / `end_call` tools — they don't need `end` nodes
+- [ ] Goto nodes are used to route back to the trunk after branches
+- [ ] Global nodes cover cross-cutting concerns (live agent, cancel)
 - [ ] Tools are assigned only to nodes that need them
 
 ## IMPORTANT: Sequential Operations Only

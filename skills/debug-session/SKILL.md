@@ -9,7 +9,9 @@ Diagnose agent issues from real session data, fix root causes, and create test c
 
 ## Prerequisites
 
-You need a `projectId` and either a `sessionId` or a description of the problem.
+You need a `sessionId`. The project is inferred from the session itself.
+
+If you don't have a session ID, use `list_sessions` with a `projectId` to find problematic sessions.
 
 ## Workflow
 
@@ -19,7 +21,7 @@ If the user provides a session ID, fetch it directly:
 
 ```
 Tool: get_session
-Input: { "projectId": "<id>", "sessionId": "<id>" }
+Input: { "sessionId": "<id>" }
 ```
 
 If no session ID, search recent sessions for failures:
@@ -51,11 +53,10 @@ Read through the session events in order. Identify:
 
 ### Step 3: Gather Context
 
-Fetch the agent and pathway config to understand the root cause:
+Fetch the agent config to understand the root cause. Use the `projectId` from the session data:
 
 ```
-Tool: get_agent    → Check system prompt, model, execution mode
-Tool: get_pathway  → Check node prompts, edge conditions, flow structure
+Tool: get_agent    → Check global prompt, execution mode
 Tool: list_tools   → Check tool definitions if tool-related issue
 ```
 
@@ -66,17 +67,17 @@ Apply the minimal fix. Common fixes by category:
 | Category | Typical Fix |
 |----------|-------------|
 | Wrong routing | Update edge conditions to be more specific / mutually exclusive |
-| Hallucination | Add "only answer using tools" instruction to node or global prompt |
+| Hallucination | Add "only answer using tools" instruction to global prompt or node prompt |
 | Tool failure | Fix tool description; add error handling instruction to node prompt |
-| Prompt issue | Update node prompt or global prompt |
-| Loop | Add max-visit guards or exit conditions on edges |
+| Prompt issue | Update global prompt or node prompt |
+| Loop | Add exit conditions on edges |
 | Missing path | Add new node + edges for the uncovered intent |
 
 Use the appropriate mutation tools:
 
 ```
-Tool: update_agent   → Fix global prompt, model settings
-Tool: update_node    → Fix node prompts, labels
+Tool: update_agent   → Fix global prompt, execution mode
+Tool: update_node    → Fix node prompts
 Tool: create_edge    → Add missing transitions
 Tool: delete_edge    → Remove incorrect transitions
 Tool: create_node    → Add new conversation states

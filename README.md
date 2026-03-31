@@ -18,13 +18,7 @@ Set your API key as an environment variable:
 export PATHORS_API_KEY="dk_your_key_here"
 ```
 
-Script skills require `npx tsx` (installed as devDependency).
-
 ## Available Skills
-
-### Documentation Skills
-
-Guide-style skills that teach workflows via MCP tool references.
 
 | Skill | Description |
 |-------|-------------|
@@ -32,26 +26,9 @@ Guide-style skills that teach workflows via MCP tool references.
 | `design-pathway` | Design and manage conversation pathway flows |
 | `manage-tools` | Configure and manage tools available to agents |
 | `optimize-agent` | Review and optimize agent configuration |
+| `debug-session` | Debug session issues, fix config, and create regression tests |
 
-### Script Skills
-
-TypeScript skills that call the REST API directly with zod validation and structured output.
-
-| Skill | Description |
-|-------|-------------|
-| `quick-agent` | Full agent config + project overview + partial updates |
-| `quick-pathway` | Pathway CRUD with sequential safety and batch operations |
-| `quick-session` | Session queries, stats, and compact transcript view |
-| `quick-tools` | Tool management with field validation |
-
-### Why Script Skills?
-
-| | MCP Tools | Script Skills |
-|---|---|---|
-| Token usage | Full JSON responses | Only essential data when using compact mode |
-| Type safety | AI interprets errors | Zod validates before sending |
-| Multi-step ops | AI manages sequencing | Script handles internally (e.g., `batch-setup`) |
-| Error handling | AI parses error responses | Structured error output |
+All skills are guide-style workflows that orchestrate MCP tools with best practices.
 
 ## MCP Server
 

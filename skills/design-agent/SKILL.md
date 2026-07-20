@@ -308,6 +308,7 @@ Before deploying, verify:
 - [ ] Goto nodes are used to route back to the trunk after branches
 - [ ] Global nodes cover cross-cutting concerns (live agent, cancel)
 - [ ] Tools are assigned only to nodes that need them
+- [ ] Every path has been walked end-to-end in an interactive test conversation (see the `test-conversation` skill: `start_conversation` → `send_message` per branch → verify `currentNodeId` transitions) before going live
 
 ## IMPORTANT: Sequential Operations Only
 

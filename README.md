@@ -29,6 +29,7 @@ export PATHORS_API_KEY="dk_your_key_here"
 | `design-agent` | Design a complete agent — project setup, global prompt, pathway architecture, and tools |
 | `manage-tools` | Configure and manage tools available to agents |
 | `debug-session` | Debug session issues, fix config, and create regression tests |
+| `test-conversation` | Interactively test an agent turn by turn — inspect node transitions, variable extraction, and tool calls |
 
 ## MCP Server
 

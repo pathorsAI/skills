@@ -86,9 +86,24 @@ Tool: update_tool    → Fix tool descriptions
 
 **IMPORTANT:** Pathway mutations must be sequential (read-modify-write on single JSON doc). Never call multiple pathway mutation tools in parallel.
 
-### Step 5: Create Regression Test Case
+### Step 5: Verify the Fix Interactively
 
-This is the critical step. After fixing the issue, create a test case that reproduces the original failure scenario so it can be caught automatically in the future.
+Before writing a regression test, confirm the fix actually works by reproducing the original scenario live (see the `test-conversation` skill):
+
+```
+Tool: start_conversation      → open a fresh session (seed variables if the original session had them)
+Tool: send_message            → replay the user messages that triggered the bug, turn by turn
+Tool: get_conversation_state  → check currentNodeId / extractedVariables / toolEvents at the failure point
+Tool: end_conversation        → always close the session when done
+```
+
+At the turn where the original session went wrong, verify the state now matches expectations — correct node transition, variable extracted, tool fired (or not fired). If the bug still reproduces, go back to Step 4.
+
+Interactive testing gives **immediate verification**; the test suite in the next step gives **long-term protection**. Do both.
+
+### Step 6: Create Regression Test Case
+
+After verifying the fix, create a test case that reproduces the original failure scenario so it can be caught automatically in the future.
 
 ```
 Tool: create_test_case
@@ -110,7 +125,7 @@ Tips for writing good test cases:
 - Write acceptance criteria in plain language — they are evaluated by an LLM
 - Include both positive ("agent should X") and negative ("agent should not Y") criteria
 
-### Step 6: Add to Test Suite and Verify
+### Step 7: Add to Test Suite and Verify
 
 Connect the test case to a suite and run it:
 

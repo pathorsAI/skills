@@ -1,0 +1,17 @@
+{
+  "name": "pathors",
+  "displayName": "Pathors",
+  "version": "0.4.0",
+  "description": "Build, test, and debug Pathors AI voice and chat agents from Cursor: projects, prompts, pathways, tools, sessions, and test suites through the Pathors MCP server.",
+  "author": {
+    "name": "Pathors",
+    "email": "jack@pathors.com",
+    "url": "https://pathors.com"
+  },
+  "homepage": "https://pathors.com",
+  "repository": "https://github.com/pathorsAI/skills",
+  "keywords": ["pathors", "voice-agent", "ai-agent", "call-center", "mcp", "conversational-ai"],
+  "logo": "assets/logo.png",
+  "skills": "skills/",
+  "mcpServers": "mcp.json"
+}

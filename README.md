@@ -8,6 +8,12 @@ All skills are built on top of the **Pathors MCP server**, orchestrating MCP too
 
 ## Installation
 
+### Cursor
+
+Install **Pathors** from the Cursor Marketplace. The plugin bundles the four skills below and the Pathors MCP server. Cursor opens the Pathors sign-in page the first time a tool runs.
+
+### Other agents
+
 ```bash
 npx skills add pathorsai/skills
 ```
@@ -33,7 +39,7 @@ export PATHORS_API_KEY="dk_your_key_here"
 
 ## MCP Server
 
-This package includes a `.mcp.json` that connects to the Pathors MCP server at `https://api.pathors.com/mcp`.
+This package includes a `.mcp.json` (Claude Code) and an `mcp.json` (Cursor plugin) that connect to the Pathors MCP server at `https://api.pathors.com/mcp`.
 
 ## Links
 

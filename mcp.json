@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "pathors": {
+      "url": "https://api.pathors.com/mcp"
+    }
+  }
+}
